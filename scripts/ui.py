@@ -21,7 +21,14 @@ def on_ui_tab_called():
                         color_threshold = threshold
                         print("Threshold:", color_threshold)
                         # first convert to RGB
-                        image = image.convert("RGB")
+                        # warn : APNG transparent channels should be converted as white
+                        if image.mode == "RGBA":
+                            # convert transparent pixels to white
+                            white_image = Image.new("RGB", image.size, (255, 255, 255))
+                            white_image.paste(image, mask=image.split()[3])
+                            image = white_image
+                        else:
+                            image = image.convert("RGB")
                         # get the pixels that has black or color that is close to black
                         # Using HSV color space
                         # convert to HSV
