@@ -9,15 +9,16 @@ def on_ui_tab_called():
             with gr.Tabs():
                 with gr.TabItem("PNG2APNG"):
                     image_upload_input = gr.Image(label="Upload Image", source="upload",type="pil")
+                    threshold_input = gr.Slider(minimum=0, maximum=255, default=20, label="Threshold")
                     button = gr.Button(label="Convert")
                     image_upload_output = gr.Image(label="Output Image",type="pil")
                     
-                    def convert_image(image:Image.Image)->Image.Image:
+                    def convert_image(image:Image.Image, threshold:int)->Image.Image:
                         """
                         Converts the image to apng
                         The black color (with some threshold) will remain, others will be transparent
                         """
-                        color_threshold = 20 #0-20
+                        color_threshold = threshold
                         # first convert to RGB
                         image = image.convert("RGB")
                         # get the pixels that has black or color that is close to black
