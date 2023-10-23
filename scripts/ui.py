@@ -13,7 +13,7 @@ def on_ui_tab_called():
                     button = gr.Button(label="Convert")
                     image_upload_output = gr.Image(label="Output Image",type="pil")
                     
-                    def convert_image(image:Image.Image, threshold:int)->Image.Image:
+                    def convert_image(image:Image.Image, threshold:float)->Image.Image:
                         """
                         Converts the image to apng
                         The black color (with some threshold) will remain, others will be transparent
@@ -28,6 +28,8 @@ def on_ui_tab_called():
                         # create new apng image
                         apng_shape = (image.height, image.width, 4)
                         new_image = np.zeros(apng_shape, dtype=np.uint8)
+                        # put the white pixels
+                        new_image[:,:,:4] = (255,255,255,255)
                         # put the black pixels
                         new_image[black_pixels] = [0,0,0,255]
                         # convert to PIL image
