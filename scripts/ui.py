@@ -25,10 +25,12 @@ def on_ui_tab_called():
                         # get the black pixels
                         black_pixels = np.where(np.all(arr <= color_threshold, axis=-1))
                         # create new apng image
-                        new_image = Image.new("RGBA", image.size, (0,0,0,0))
+                        apng_shape = (image.height, image.width, 4)
+                        new_image = np.zeros(apng_shape, dtype=np.uint8)
                         # put the black pixels
-                        new_image.putpixel((black_pixels[1], black_pixels[0]), (0,0,0,255))
-                        # return the new image
+                        new_image[black_pixels] = [0,0,0,255]
+                        # convert to PIL image
+                        new_image = Image.fromarray(new_image)
                         return new_image
                     button.click(convert_image, inputs=[image_upload_input], outputs=[image_upload_output])
     return (transparent_interface, "PNG2APNG", "script_png2apng_interface"),
