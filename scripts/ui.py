@@ -28,12 +28,12 @@ def on_ui_tab_called():
                         # create new apng image
                         apng_shape = (image.height, image.width, 4)
                         new_image = np.zeros(apng_shape, dtype=np.uint8)
-                        # put the white pixels
-                        new_image[:,:,:4] = (255,255,255,255)
                         # put the black pixels
                         new_image[black_pixels] = [0,0,0,255]
                         # convert to PIL image
                         new_image = Image.fromarray(new_image)
+                        # assert image is RGBA
+                        assert new_image.mode == "RGBA"
                         return new_image
                     button.click(convert_image, inputs=[image_upload_input, threshold_input], outputs=[image_upload_output])
     return (transparent_interface, "PNG2APNG", "script_png2apng_interface"),
