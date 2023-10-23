@@ -23,9 +23,15 @@ def on_ui_tab_called():
                         # first convert to RGB
                         image = image.convert("RGB")
                         # get the pixels that has black or color that is close to black
-                        arr = np.array(image) # convert to numpy array, channel 3
-                        # get the black pixels
-                        black_pixels = np.where(np.all(arr <= color_threshold, axis=-1))
+                        # Using HSV color space
+                        # convert to HSV
+                        hsv_image = image.convert("HSV")
+                        # get the pixels that has black or color that is close to black, we can use brightness
+                        array = np.array(hsv_image)
+                        # get the brightness
+                        brightness = array[:,:,2]
+                        # brightness should be less than the threshold
+                        black_pixels = brightness <= color_threshold
                         # create new apng image
                         apng_shape = (image.height, image.width, 4)
                         new_image = np.zeros(apng_shape, dtype=np.uint8)
