@@ -11,7 +11,7 @@ def on_ui_tab_called():
                     image_upload_input = gr.Image(label="Upload Image", source="upload",type="pil")
                     threshold_input = gr.Slider(minimum=0, maximum=255, value=20, label="Threshold")
                     button = gr.Button(label="Convert")
-                    image_upload_output = gr.Image(label="Output Image",type="pil")
+                    image_upload_output = gr.Image(label="Output Image",type="numpy")
                     
                     def convert_image(image:Image.Image, threshold:float)->Image.Image:
                         """
@@ -30,11 +30,7 @@ def on_ui_tab_called():
                         new_image = np.zeros(apng_shape, dtype=np.uint8)
                         # put the black pixels
                         new_image[black_pixels] = [0,0,0,255]
-                        # convert to PIL image
-                        new_image = Image.fromarray(new_image)
-                        # assert image is RGBA
-                        assert new_image.mode == "RGBA"
-                        return new_image
+                        return new_image # return the new image
                     button.click(convert_image, inputs=[image_upload_input, threshold_input], outputs=[image_upload_output])
     return (transparent_interface, "PNG2APNG", "script_png2apng_interface"),
 
