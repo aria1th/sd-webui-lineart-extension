@@ -34,7 +34,7 @@ def upscale_image(image:Image.Image, scale:int)->Image.Image:
     images = result[0]
     return images[0]
 
-def gaussian_and_re_threshold(image:Image.Image, threshold:int)->Image.Image:
+def gaussian_and_re_threshold(image:Image.Image, threshold:int, blur:int)->Image.Image:
     """
     Applies small gaussian blur and re-threshold the image
     image : RGBA image
@@ -46,7 +46,7 @@ def gaussian_and_re_threshold(image:Image.Image, threshold:int)->Image.Image:
     # convert to numpy array
     array = np.array(grayscale_image)
     # blur the image
-    blurred_image = cv2.GaussianBlur(array, (9,9), 0)
+    blurred_image = cv2.GaussianBlur(array, (blur,blur), 0)
     # use standard threshold to get black pixels
     _, threshold_result = cv2.threshold(blurred_image, threshold, 255, cv2.THRESH_BINARY)
     # create new apng image
@@ -88,20 +88,23 @@ def on_ui_tab_called():
                 with gr.TabItem("PNG2APNG"):
                     with gr.Row():
                         image_upload_input = gr.Image(label="Upload Image", source= "upload",type="pil")
-                        threshold_input = gr.Slider(minimum=0, maximum=255, value=100, label="Threshold_black")
-                        threshold_remove = gr.Slider(minimum=0, maximum=255, value=50, label="Threshold_remove")
-                        upscale_input = gr.Slider(minimum=1, maximum=8, value=1, label="Upscale, 1 to disable")
-                        adaptive_checkbox = gr.Checkbox(label="Adaptive Threshold", value=False)
+                        with gr.Row():
+                            threshold_input = gr.Slider(minimum=0, maximum=255, value=100, label="Threshold_black")
+                            threshold_blur = gr.Slider(minimum=3, maximum=9, value=5, step = 2, label="Threshold_blur")
+                            threshold_remove = gr.Slider(minimum=0, maximum=255, value=50, label="Threshold_remove")
+                            upscale_input = gr.Slider(minimum=1, maximum=8, value=1, label="Upscale, 1 to disable")
+                            adaptive_checkbox = gr.Checkbox(label="Adaptive Threshold", value=False)
                         button = gr.Button(label="Convert")
                     with gr.Row():
                         image_upload_output = gr.Image(label="Output Image",type="numpy")
-                    def convert_image(image:Image.Image, threshold:float, remove:float, upscale_scale:float, adaptive:bool)->np.ndarray:
+                    def convert_image(image:Image.Image, threshold:float, blur:float, remove:float, upscale_scale:float, adaptive:bool)->np.ndarray:
                         """
                         Converts the image to apng
                         The black color (with some threshold) will remain, others will be transparent
                         """
                         color_threshold = threshold
                         remove_threshold = remove
+                        threshold_blur = blur
                         # upscale the image
                         # convert to RGB
                         image = upscale_image(image, upscale_scale)
@@ -137,18 +140,18 @@ def on_ui_tab_called():
                             # convert to numpy array
                             array = np.array(grayscale_image)
                             # using cv2 adaptive gaussian threshold
-                            threshol_result = cv2.adaptiveThreshold(array, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 17, 2)
+                            threshol_result = cv2.adaptiveThreshold(array, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 9, 2)
                             # create new apng image
                             apng_shape = (image.height, image.width, 4)
                             new_image = np.zeros(apng_shape, dtype=np.uint8)
                             # put the black pixels
                             new_image[threshol_result == 0] = [0,0,0,255]
                             new_image = Image.fromarray(new_image)
-                            new_image = gaussian_and_re_threshold(new_image, color_threshold)
+                            new_image = gaussian_and_re_threshold(new_image, color_threshold, threshold_blur)
                             new_image = small_points_remover(new_image, remove_threshold)
                         return new_image # return the new image
                     
-                    button.click(convert_image, inputs=[image_upload_input, threshold_input, threshold_remove, upscale_input, adaptive_checkbox], outputs=[image_upload_output])
+                    button.click(convert_image, inputs=[image_upload_input, threshold_input, threshold_blur, threshold_remove, upscale_input, adaptive_checkbox], outputs=[image_upload_output])
     return (transparent_interface, "PNG2APNG", "script_png2apng_interface"),
 
 try:
