@@ -2,7 +2,7 @@ import gradio as gr
 from PIL import Image
 import numpy as np
 import cv2
-from PIL import ImageFilter
+from PIL import ImageFilter, ImageOps
 
 def upscale_image(image:Image.Image, scale:int)->Image.Image:
     """
@@ -46,13 +46,16 @@ def gaussian_and_re_threshold(image:Image.Image, threshold:int, blur:int)->Image
     # convert to numpy array
     array = np.array(grayscale_image)
     # blur the image
-    blurred_image = cv2.GaussianBlur(array, (blur,blur), 0)
+    if blur > 1:
+        blurred_image = cv2.GaussianBlur(array, (blur,blur), 0)
+    else:
+        blurred_image = array # no blur
     # use standard threshold to get black pixels
     _, threshold_result = cv2.threshold(blurred_image, threshold, 255, cv2.THRESH_BINARY)
     # create new apng image
     apng_shape = (image.height, image.width, 4)
     new_image = np.zeros(apng_shape, dtype=np.uint8)
-    # put the black pixels
+    # put the black pixels  
     new_image[threshold_result == 0] = [0,0,0,255]
     new_image = Image.fromarray(new_image)
     return new_image
@@ -85,12 +88,28 @@ def on_ui_tab_called():
     with gr.Blocks() as transparent_interface:
         with gr.Row():
             with gr.Tabs():
+                with gr.TabItem("Invert"):
+                    with gr.Row():
+                        image_invert_input = gr.Image(label="Upload Image", source= "upload",type="pil")
+                        button = gr.Button(label="Invert")
+                    with gr.Row():
+                        image_invert_output = gr.Image(label="Output Image",type="numpy")
+                    def invert_image(image:Image.Image)->np.ndarray:
+                        # imageops.invert
+                        # handle RGBA
+                        if image.mode == "RGBA":
+                            # convert transparent pixels to white
+                            white_image = Image.new("RGB", image.size, (255, 255, 255))
+                            white_image.paste(image, mask=image.split()[3])
+                            image = white_image
+                        return ImageOps.invert(image)
+                    button.click(invert_image, inputs=[image_invert_input], outputs=[image_invert_output])
                 with gr.TabItem("PNG2APNG"):
                     with gr.Row():
                         image_upload_input = gr.Image(label="Upload Image", source= "upload",type="pil")
                         with gr.Row():
                             threshold_input = gr.Slider(minimum=0, maximum=255, value=100, label="Threshold_black")
-                            threshold_blur = gr.Slider(minimum=3, maximum=9, value=5, step = 2, label="Threshold_blur")
+                            threshold_blur = gr.Slider(minimum=1, maximum=9, value=5, step = 2, label="Threshold_blur")
                             threshold_remove = gr.Slider(minimum=0, maximum=255, value=50, label="Threshold_remove")
                             upscale_input = gr.Slider(minimum=1, maximum=8, value=1, label="Upscale, 1 to disable")
                             adaptive_checkbox = gr.Checkbox(label="Adaptive Threshold", value=False)
