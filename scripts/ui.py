@@ -113,20 +113,24 @@ def on_ui_tab_called():
                             threshold_remove = gr.Slider(minimum=0, maximum=255, value=50, label="Threshold_remove")
                             upscale_input = gr.Slider(minimum=1, maximum=8, value=1, label="Upscale, 1 to disable")
                             adaptive_checkbox = gr.Checkbox(label="Adaptive Threshold", value=False)
+                            upscale_order_checkbox = gr.Checkbox(label="Upscale first", value=False)
                         button = gr.Button(label="Convert")
                     with gr.Row():
                         image_upload_output = gr.Image(label="Output Image",type="numpy")
-                    def convert_image(image:Image.Image, threshold:float, blur:float, remove:float, upscale_scale:float, adaptive:bool)->np.ndarray:
+                    def convert_image(image:Image.Image, threshold:float, blur:float, remove:float, upscale_scale:float, adaptive:bool, upscale_order:bool)->np.ndarray:
                         """
                         Converts the image to apng
                         The black color (with some threshold) will remain, others will be transparent
+                        
+                        @param upscale_order : if True, upscale the image first, then calculate line art, else revert
                         """
                         color_threshold = threshold
                         remove_threshold = remove
                         threshold_blur = blur
                         # upscale the image
                         # convert to RGB
-                        image = upscale_image(image, upscale_scale)
+                        if upscale_order:
+                            image = upscale_image(image, upscale_scale)
                         # first convert to RGB
                         # warn : APNG transparent channels should be converted as white
                         if image.mode == "RGBA":
@@ -168,9 +172,12 @@ def on_ui_tab_called():
                             new_image = Image.fromarray(new_image)
                             new_image = gaussian_and_re_threshold(new_image, color_threshold, threshold_blur)
                             new_image = small_points_remover(new_image, remove_threshold)
+                        # upscale the image
+                        if not upscale_order:
+                            new_image = upscale_image(new_image, upscale_scale)
                         return new_image # return the new image
                     
-                    button.click(convert_image, inputs=[image_upload_input, threshold_input, threshold_blur, threshold_remove, upscale_input, adaptive_checkbox], outputs=[image_upload_output])
+                    button.click(convert_image, inputs=[image_upload_input, threshold_input, threshold_blur, threshold_remove, upscale_input, adaptive_checkbox, upscale_order_checkbox], outputs=[image_upload_output])
     return (transparent_interface, "PNG2APNG", "script_png2apng_interface"),
 
 try:
