@@ -10,6 +10,9 @@ def upscale_image(image:Image.Image, scale:int)->Image.Image:
     """
     if scale == 1:
         return image
+    # if image is numpy array, convert to PIL image
+    if isinstance(image, np.ndarray):
+        image = Image.fromarray(image)
     extra_upscale_func = postprocessing.run_extras
     result = extra_upscale_func(
         extras_mode=0,
@@ -108,9 +111,9 @@ def on_ui_tab_called():
                     with gr.Row():
                         image_upload_input = gr.Image(label="Upload Image", source= "upload",type="pil")
                         with gr.Row():
-                            threshold_input = gr.Slider(minimum=0, maximum=255, value=100, label="Threshold_black")
-                            threshold_blur = gr.Slider(minimum=1, maximum=9, value=5, step = 2, label="Threshold_blur")
-                            threshold_remove = gr.Slider(minimum=0, maximum=255, value=50, label="Threshold_remove")
+                            threshold_input = gr.Slider(minimum=0, maximum=255, value=100, label="Color Threshold for black")
+                            threshold_blur = gr.Slider(minimum=1, maximum=13, value=1, step = 2, label="Blur strength")
+                            threshold_remove = gr.Slider(minimum=0, maximum=255, value=50, label="Remove small points threshold")
                             upscale_input = gr.Slider(minimum=1, maximum=8, value=1, label="Upscale, 1 to disable")
                             adaptive_checkbox = gr.Checkbox(label="Adaptive Threshold", value=False)
                             upscale_order_checkbox = gr.Checkbox(label="Upscale first", value=False)
