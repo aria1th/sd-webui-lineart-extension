@@ -20,6 +20,15 @@ def upscale_image(image:Image.Image, scale:int)->Image.Image:
             image = white_image
         else:
             image = Image.fromarray(image)
+    else:
+        # image, handle RGBA
+        if image.mode == "RGBA":
+            # convert transparent pixels to white
+            white_image = Image.new("RGB", image.size, (255, 255, 255))
+            white_image.paste(image, mask=image.split()[3])
+            image = white_image
+        else:
+            image = image.convert("RGB")
     #print(image.size)
     extra_upscale_func = postprocessing.run_extras
     result = extra_upscale_func(
