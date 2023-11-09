@@ -12,7 +12,15 @@ def upscale_image(image:Image.Image, scale:int)->Image.Image:
         return image
     # if image is numpy array, convert to PIL image
     if isinstance(image, np.ndarray):
-        image = Image.fromarray(image)
+        # RGBA to RGB, convert transparent pixels to white
+        if image.shape[2] == 4:
+            #print(f"Upscaling RGBA image : {image.shape}")
+            white_image = Image.new("RGB", image.shape[:2][::-1], (255, 255, 255)) # numpy array is height, width
+            white_image.paste(Image.fromarray(image), mask=Image.fromarray(image).split()[3])
+            image = white_image
+        else:
+            image = Image.fromarray(image)
+    #print(image.size)
     extra_upscale_func = postprocessing.run_extras
     result = extra_upscale_func(
         extras_mode=0,
@@ -27,8 +35,8 @@ def upscale_image(image:Image.Image, scale:int)->Image.Image:
         gfpgan_visibility= 0,
         codeformer_visibility= 0,
         codeformer_weight= 0,
-        upscaling_resize_w= 512,
-        upscaling_resize_h= 512,
+        upscaling_resize_w= image.width * scale,
+        upscaling_resize_h= image.height * scale,
         upscaling_crop= True,
         extras_upscaler_2= 'None',
         extras_upscaler_2_visibility= 0,
@@ -61,6 +69,7 @@ def gaussian_and_re_threshold(image:Image.Image, threshold:int, blur:int)->Image
     # put the black pixels  
     new_image[threshold_result == 0] = [0,0,0,255]
     new_image = Image.fromarray(new_image)
+    assert new_image.size == image.size, f"New image size is different from original image size : {new_image.size} vs {image.size}"
     return new_image
 
 def small_points_remover(image:Image.Image, threshold:int) -> Image.Image:
@@ -84,6 +93,7 @@ def small_points_remover(image:Image.Image, threshold:int) -> Image.Image:
     # put the mask's black pixels to new image
     new_image[mask[:,:,0] == 0] = [0,0,0,255]
     new_image = Image.fromarray(new_image)
+    assert new_image.size == image.size, f"New image size is different from original image size : {new_image.size} vs {image.size}"
     return new_image
 
 
@@ -132,8 +142,10 @@ def on_ui_tab_called():
                         threshold_blur = blur
                         # upscale the image
                         # convert to RGB
+                        #print(f"Base image size : {image.size}")
                         if upscale_order:
                             image = upscale_image(image, upscale_scale)
+                            #print(f"Upscaled image size : {image.size}")
                         # first convert to RGB
                         # warn : APNG transparent channels should be converted as white
                         if image.mode == "RGBA":
@@ -143,22 +155,28 @@ def on_ui_tab_called():
                             image = white_image
                         else:
                             image = image.convert("RGB")
+                        #print(f"Converted image size : {image.size}")
                         # get the pixels that has black or color that is close to black
                         # Using HSV color space
                         # convert to HSV
                         if not adaptive:
                             hsv_image = image.convert("HSV")
+                            # assert size is same
+                            assert hsv_image.size == image.size, f"HSV image size is different from RGB image size : {hsv_image.size} vs {image.size}"
                             # get the pixels that has black or color that is close to black, we can use brightness
                             array = np.array(hsv_image)
+                            #print(f"HSV image size : {hsv_image.size}")
+                            #print(f"HSV image array shape : {array.shape}") # width and height order is reversed
                             # get the brightness
                             brightness = array[:,:,2]
                             # brightness should be less than the threshold
                             black_pixels = brightness <= color_threshold
-                            # create new apng image
+                            # create new apng image with white background
                             apng_shape = (image.height, image.width, 4)
                             new_image = np.zeros(apng_shape, dtype=np.uint8)
                             # put the black pixels
                             new_image[black_pixels] = [0,0,0,255]
+                            #print(f"Non-adaptive image size : {new_image.shape}")
                         else:
                             # use adaptive gaussian threshold
                             # convert to grayscale
@@ -175,9 +193,30 @@ def on_ui_tab_called():
                             new_image = Image.fromarray(new_image)
                             new_image = gaussian_and_re_threshold(new_image, color_threshold, threshold_blur)
                             new_image = small_points_remover(new_image, remove_threshold)
+                            #print(f"Adaptive image size : {new_image.size}")
                         # upscale the image
                         if not upscale_order:
-                            new_image = upscale_image(new_image, upscale_scale)
+                            #print(f"pre-Upscaled image size : {new_image.shape}")
+                            new_image = upscale_image(new_image, upscale_scale) #RGB Image
+                            #print(f"Upscaled image size : {new_image.size}")
+                            if upscale_scale > 1:
+                                # RGB image to RGBA
+                                # we will set white pixels to transparent
+                                # convert to numpy array
+                                array = np.array(new_image) # 3D array
+                                # get the white pixels
+                                white_pixels = np.all(array >= 250, axis=-1)
+                                # put the transparent pixels
+                                rgba_array = np.zeros((array.shape[0], array.shape[1], 4), dtype=np.uint8)
+                                # put all the pixels first
+                                rgba_array[:,:,:3] = array
+                                # set all alpha to 255
+                                rgba_array[:,:,3] = 255
+                                # put the transparent pixels
+                                rgba_array[white_pixels] = [0,0,0,0]
+                                # convert to image
+                                new_image = Image.fromarray(rgba_array)
+                            
                         return new_image # return the new image
                     
                     button.click(convert_image, inputs=[image_upload_input, threshold_input, threshold_blur, threshold_remove, upscale_input, adaptive_checkbox, upscale_order_checkbox], outputs=[image_upload_output])
