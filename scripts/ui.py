@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import cv2
 from PIL import ImageFilter, ImageOps
+from scripts.webuiapi import WebUIApi
 
 def upscale_image(image:Image.Image, scale:int)->Image.Image:
     """
@@ -30,28 +31,16 @@ def upscale_image(image:Image.Image, scale:int)->Image.Image:
         else:
             image = image.convert("RGB")
     #print(image.size)
-    extra_upscale_func = postprocessing.run_extras
-    result = extra_upscale_func(
-        extras_mode=0,
-        resize_mode=0,
-        upscaling_resize = scale,
-        extras_upscaler_1="R-ESRGAN 4x+ Anime6B",
-        image=image,
-        image_folder= "",
-        input_dir= "",
-        output_dir= "",
-        show_extras_results= 0,
-        gfpgan_visibility= 0,
-        codeformer_visibility= 0,
-        codeformer_weight= 0,
-        upscaling_resize_w= image.width * scale,
-        upscaling_resize_h= image.height * scale,
-        upscaling_crop= True,
-        extras_upscaler_2= 'None',
-        extras_upscaler_2_visibility= 0,
-        upscale_first= False,
+    api_instance = WebUIApi(
+        port=9050 #
     )
-    images = result[0]
+    upscale_result = api_instance.extra_single_image(
+        image=image,
+        upscaler_1 = "R-ESRGAN 4x+ Anime6B",
+        upscaling_resize_h= image.height * scale,
+        upscaling_resize_w= image.width * scale,
+    )
+    images = upscale_result[0]
     return images[0]
 
 def gaussian_and_re_threshold(image:Image.Image, threshold:int, blur:int)->Image.Image:
