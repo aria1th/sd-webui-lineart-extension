@@ -1,8 +1,17 @@
 import gradio as gr
-from PIL import Image
 import numpy as np
 import cv2
-from PIL import ImageFilter, ImageOps
+from PIL import Image, ImageEnhance, ImageOps
+
+def saturate(image, scale):
+    """
+    Saturation filter
+    """
+    if scale == 1:
+        return image
+    enhancer = ImageEnhance.Color(image)
+    saturated_image = enhancer.enhance(scale)
+    return saturated_image
 
 def upscale_image(image:Image.Image, scale:int)->Image.Image:
     """
@@ -136,10 +145,13 @@ def on_ui_tab_called():
                             upscale_input = gr.Slider(minimum=1, maximum=8, value=1, label="Upscale, 1 to disable")
                             adaptive_checkbox = gr.Checkbox(label="Adaptive Threshold", value=False)
                             upscale_order_checkbox = gr.Checkbox(label="Upscale first", value=False)
+                            saturation_input = gr.Slider(minimum=0, maximum=10, value=5, label="Saturation")
                         button = gr.Button(label="Convert")
                     with gr.Row():
                         image_upload_output = gr.Image(label="Output Image",type="numpy")
-                    def convert_image(image:Image.Image, threshold:float, blur:float, remove:float, upscale_scale:float, adaptive:bool, upscale_order:bool)->np.ndarray:
+                    def convert_image(image:Image.Image, threshold:float, blur:float, 
+                                      remove:float, upscale_scale:float, adaptive:bool,
+                                      upscale_order:bool, saturate_scale: int)->np.ndarray:
                         """
                         Converts the image to apng
                         The black color (with some threshold) will remain, others will be transparent
@@ -157,6 +169,8 @@ def on_ui_tab_called():
                             #print(f"Upscaled image size : {image.size}")
                         # first convert to RGB
                         # warn : APNG transparent channels should be converted as white
+                        # saturate the image
+                        image = saturate(image, saturate_scale)
                         if image.mode == "RGBA":
                             # convert transparent pixels to white
                             white_image = Image.new("RGB", image.size, (255, 255, 255))
@@ -228,7 +242,7 @@ def on_ui_tab_called():
                             
                         return new_image # return the new image
                     
-                    button.click(convert_image, inputs=[image_upload_input, threshold_input, threshold_blur, threshold_remove, upscale_input, adaptive_checkbox, upscale_order_checkbox], outputs=[image_upload_output])
+                    button.click(convert_image, inputs=[image_upload_input, threshold_input, threshold_blur, threshold_remove, upscale_input, adaptive_checkbox, upscale_order_checkbox, saturation_input], outputs=[image_upload_output])
     return (transparent_interface, "PNG2APNG", "script_png2apng_interface"),
 
 try:
