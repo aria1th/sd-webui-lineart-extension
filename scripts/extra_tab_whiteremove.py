@@ -4,6 +4,7 @@ import gradio as gr
 import numpy as np
 from PIL import Image, ImageEnhance
 from scripts.lineart_functions import upscale_image
+import tempfile
 
 def white_to_transparent_hsv_pil(img, sat_threshold=30, val_threshold=220):
     img = img.convert('HSV')
@@ -27,3 +28,15 @@ def processing_v2(image, scale:float = 4, brightness_value:float = 0.3):
     image = white_to_transparent_hsv_pil(image)
     image = brightness(image, brightness_value)
     return image
+
+def processing_v2_binary(image, scale:float = 4, brightness_value:float = 0.3):
+    """
+    Returns tempfile path
+    """
+    image = upscale_image(image, scale)
+    image = white_to_transparent_hsv_pil(image)
+    image = brightness(image, brightness_value)
+    binary_image = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
+    with open(binary_image.name, "wb") as f:
+        image.save(f, format="PNG")
+    return binary_image.name

@@ -2,7 +2,7 @@ import gradio as gr
 import numpy as np
 import cv2
 from PIL import Image, ImageEnhance, ImageOps
-from scripts.extra_tab_whiteremove import processing_v2
+from scripts.extra_tab_whiteremove import processing_v2_binary
 from scripts.lineart_functions import saturate, upscale_image, gaussian_and_re_threshold, small_points_remover
 
 def on_ui_tab_called():
@@ -138,9 +138,9 @@ def on_ui_tab_called():
                     upscale_scaler = gr.Slider(minimum=1, maximum=8, value=4, step=0.5, label="Upscale, 1 to disable")
                     brightness_scale = gr.Slider(minimum=0, maximum=1, value=0.3, step=0.05, label="Brightness")
                     button = gr.Button(label="Convert")
-                    image_output = gr.Image(label="Output Image",type="numpy")
+                    image_output_file = gr.File(label="Output Image (binary)", type="file")
                     
-                    button.click(processing_v2, inputs=[image_input, upscale_scaler, brightness_scale], outputs=[image_output])
+                    button.click(processing_v2_binary, inputs=[image_input, upscale_scaler, brightness_scale], outputs=[image_output_file])
 
     return (transparent_interface, "PNG2APNG", "script_png2apng_interface"),
 
